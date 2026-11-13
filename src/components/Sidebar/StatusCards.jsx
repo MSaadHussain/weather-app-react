@@ -67,7 +67,7 @@ export function DataSourcesCard({ data, online }) {
         <Row
           name="GeoDB Cities"
           state={!online ? 'off' : RAPIDAPI_KEY ? 'live' : 'fallback'}
-          note={!online ? 'Offline' : RAPIDAPI_KEY ? 'City autocomplete' : 'No RapidAPI key; Open-Meteo geocoding used'}
+          note={!online ? 'Offline' : RAPIDAPI_KEY ? 'City autocomplete & location lookup' : 'No RapidAPI key; Open-Meteo geocoding used'}
         />
       </ul>
     </section>

@@ -83,9 +83,52 @@ async function searchOpenMeteo(q, signal) {
   }));
 }
 
-/** Reverse lookup used for "Use my location": nearest named place for coordinates. */
+/** GeoDB location id in ISO-6709 form, e.g. "+24.8607+067.0011". */
+export function toLocationId(lat, lon) {
+  const fmt = (v, intDigits) => {
+    const sign = v < 0 ? '-' : '+';
+    const [int, frac] = Math.abs(v).toFixed(4).split('.');
+    return `${sign}${int.padStart(intDigits, '0')}.${frac}`;
+  };
+  return `${fmt(lat, 2)}${fmt(lon, 3)}`;
+}
+
+/**
+ * Reverse lookup for "Use my location": the nearest named city.
+ *   1. GeoDB  GET /v1/geo/locations/{locationId}/nearbyCities  (same provider as search)
+ *   2. BigDataCloud keyless reverse geocoding (no RapidAPI key, or GeoDB failed)
+ * The user's exact coordinates are kept, so the weather is for where they are,
+ * and only the label comes from the nearest city.
+ */
 export async function nameForCoordinates(lat, lon) {
-  // Open-Meteo has no reverse geocoder; BigDataCloud's client endpoint is free and keyless.
+  if (RAPIDAPI_KEY) {
+    try {
+      const params = new URLSearchParams({ radius: '50', distanceUnit: 'KM', limit: '5', types: 'CITY' });
+      const { data } = await fetchJson(
+        `https://${RAPIDAPI_HOST}/v1/geo/locations/${encodeURIComponent(toLocationId(lat, lon))}/nearbyCities?${params}`,
+        {
+          provider: 'GeoDB Cities',
+          timeout: 6000,
+          headers: { 'X-RapidAPI-Key': RAPIDAPI_KEY, 'X-RapidAPI-Host': RAPIDAPI_HOST },
+        },
+      );
+      const nearest = (data.data || []).reduce((best, c) => (!best || (c.distance ?? Infinity) < (best.distance ?? Infinity) ? c : best), null);
+      if (nearest) {
+        return {
+          id: `geo-${lat.toFixed(2)},${lon.toFixed(2)}`,
+          name: nearest.name,
+          region: nearest.region || '',
+          country: nearest.country || '',
+          countryCode: nearest.countryCode || '',
+          lat,
+          lon,
+        };
+      }
+    } catch (err) {
+      console.warn('[location] GeoDB nearbyCities failed, using fallback:', err.message);
+    }
+  }
+  // Fallback: BigDataCloud's client endpoint is free and keyless.
   try {
     const { data } = await fetchJson(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
