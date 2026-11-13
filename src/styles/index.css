@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* Class-based dark mode so the user's choice can override the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic colour tokens: components use bg-surface / text-fg / border-line etc.,
+   and the palette flips in one place for dark mode. */
+:root {
+  --canvas: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --line: #e5e9f0;
+  --fg: #111827;
+  --muted: #64748b;
+  --navy: #172554;
+  --accent: #3b82f6;
+  --accent-soft: #eff6ff;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --warn: #b45309;
+  --warn-soft: #fffbeb;
+  --ok: #059669;
+  --ring: rgb(59 130 246 / 0.45);
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+}
+
+.dark {
+  --canvas: #0b1120;
+  --surface: #111a2e;
+  --surface-2: #0f172a;
+  --line: #1e2a44;
+  --fg: #e5e9f0;
+  --muted: #8b9ab3;
+  --navy: #c7d2fe;
+  --accent: #60a5fa;
+  --accent-soft: rgb(59 130 246 / 0.12);
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.1);
+  --warn: #fbbf24;
+  --warn-soft: rgb(251 191 36 / 0.1);
+  --ok: #34d399;
+  --ring: rgb(96 165 250 / 0.5);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-navy: var(--navy);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --shadow-card: var(--shadow);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Motion ---------------------------------------------------------------- */
+@keyframes wb-spin { to { transform: rotate(360deg); } }
+@keyframes wb-drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6%); } }
+@keyframes wb-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4%); } }
+@keyframes wb-flash { 0%, 92%, 100% { opacity: 1; } 94%, 97% { opacity: 0.35; } }
+@keyframes wb-fall { 0% { transform: translateY(-15%); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(25%); opacity: 0; } }
+@keyframes wb-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes wb-shimmer { 100% { transform: translateX(100%); } }
+@keyframes wb-pulse-dot { 0% { box-shadow: 0 0 0 0 currentColor; } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.anim-spin-slow { animation: wb-spin 24s linear infinite; }
+.anim-drift { animation: wb-drift 6s ease-in-out infinite; }
+.anim-bob { animation: wb-bob 4s ease-in-out infinite; }
+.anim-flash { animation: wb-flash 5s linear infinite; }
+.anim-fall { animation: wb-fall 1.6s ease-in infinite; }
+.anim-fade-up { animation: wb-fade-up 0.35s ease-out both; }
+.anim-pulse-dot { animation: wb-pulse-dot 2s ease-out infinite; }
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  border-radius: 0.5rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 60%, transparent), transparent);
+  animation: wb-shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Thin horizontal scroller used by the favourites strip on small screens. */
+.scroll-strip {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.scroll-strip::-webkit-scrollbar { display: none; }
