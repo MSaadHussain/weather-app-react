@@ -476,4 +476,26 @@ Verification performed by the agent: production build; autocomplete; keyboard se
 
 ---
 
+## Prompt 5: Deployment check and GeoDB endpoints
+
+> *(Pasted: an overview of all GeoDB Cities API endpoints: admin divisions, cities, countries, regions, places/locations, locales.)*
+>
+> App is live this is all for rapid api GeoCity Data use for autocomplete
+>
+> App is deployed at :
+>
+> https://weather-app-react-iota-cyan.vercel.app/
+>
+> Claude Chrome is connected for testing
+
+**Result:** the agent tested the deployed site in Chrome:
+- GeoDB served autocomplete.
+- OpenWeatherMap returned 200 for `/weather` and `/forecast`.
+- The Auto theme went dark for night in Karachi.
+- The service worker was active and controlling the page, the manifest and icons loaded, and the no-cache header on `service-worker.js` was applied.
+
+From the pasted endpoint list, it adopted `GET /v1/geo/locations/{locationId}/nearbyCities` for "Use my location". This keeps reverse lookup on the same provider as search, with BigDataCloud as the keyless fallback. It also changed hourly labels from "05" to "05:00" (ambiguous in 24-hour locales) and added the live URL, repo link and an API/endpoint table to the README.
+
+---
+
 <!-- Add follow-up prompts below, in order: debugging, UI refinement, final testing, deployment. -->

@@ -2,8 +2,8 @@
 
 A calm, installable weather dashboard. Search any city, see current conditions and a 5-day forecast, pin up to five favourites, get a daily morning reminder, and keep using the last city offline.
 
-**Live URL:** _add after deploying_ → `https://<your-app>.vercel.app`
-**Repository:** _add after pushing_ → `https://github.com/<you>/weatherboard`
+**Live URL:** https://weather-app-react-iota-cyan.vercel.app/
+**Repository:** https://github.com/MSaadHussain/weather-app-react
 
 Built for the Edspire Frontend (React) technical challenge. The original brief is in [CHALLENGE.md](CHALLENGE.md), and the agent prompt history is in [PROMPTS.md](PROMPTS.md).
 
@@ -27,6 +27,17 @@ Built for the Edspire Frontend (React) technical challenge. The original brief i
 ### Realtime day/night theme
 
 The default theme, **Auto**, follows the sun at the city you're viewing. It's light between that city's sunrise and sunset and dark otherwise, re-evaluated every minute, so the interface cross-fades to dark at sunset while you watch. Switching to a city where it's night (Tokyo, viewed from Karachi in the afternoon) flips it immediately. The hero card's sky and icons also follow the real sunrise/sunset rather than the moment the data was fetched. Before any city loads, Auto falls back to the OS preference, and the last resolved theme is painted before React mounts to avoid a flash. **System**, **Light** and **Dark** are available from the header menu and the settings sheet.
+
+### APIs used
+
+| API | Endpoint(s) | Used for |
+|---|---|---|
+| OpenWeatherMap | `GET /data/2.5/weather`, `GET /data/2.5/forecast` | Current conditions, 24 h strip and 5-day forecast (primary) |
+| Open-Meteo | `GET /v1/forecast` | Keyless weather fallback; reminder summary inside the service worker |
+| GeoDB Cities (RapidAPI) | `GET /v1/geo/cities?namePrefix=…&sort=-population&types=CITY` | Live city autocomplete |
+| GeoDB Cities (RapidAPI) | `GET /v1/geo/locations/{locationId}/nearbyCities` | "Use my location": names the nearest city to the device's coordinates (ISO-6709 location id, e.g. `+24.8607+067.0011`) |
+| Open-Meteo Geocoding | `GET /v1/search` | Autocomplete fallback when GeoDB has no key or rate-limits |
+| BigDataCloud | `GET /data/reverse-geocode-client` | Location-name fallback when GeoDB is unavailable |
 
 ## Tech stack
 
@@ -155,7 +166,7 @@ No SPA rewrite rules are needed because the app has a single route.
 Verified in Chromium against the production build (`vite preview`):
 
 - [x] Autocomplete appears after a pause; ↑/↓/Enter/Esc work; no-results and invalid-input messages appear inline
-- [x] Selecting a city loads real weather (Open-Meteo fallback verified live; OWM normaliser verified against documented response shapes)
+- [x] Selecting a city loads real weather: OpenWeatherMap verified live on the deployed site (both endpoints 200), Open-Meteo fallback verified locally
 - [x] °C ↔ °F switches temperature, wind and visibility instantly, and persists across reload
 - [x] Favourite add persists across reload; remove asks for confirmation (Cancel focused by default)
 - [x] Service worker controls the page; shell precached; only the last city's weather cached
@@ -168,4 +179,4 @@ Worth re-checking on a real device after deploying: installing the app, the gran
 
 ## Credits
 
-Weather data: [OpenWeatherMap](https://openweathermap.org) and [Open-Meteo](https://open-meteo.com) (CC BY 4.0). City search: [GeoDB Cities](http://geodb-cities-api.wirefreethought.com/). Reverse geocoding: [BigDataCloud](https://www.bigdatacloud.com/) free client API. Icons: [Lucide](https://lucide.dev).
+Weather data: [OpenWeatherMap](https://openweathermap.org) and [Open-Meteo](https://open-meteo.com) (CC BY 4.0). City search and location lookup: [GeoDB Cities](http://geodb-cities-api.wirefreethought.com/). Reverse-geocoding fallback: [BigDataCloud](https://www.bigdatacloud.com/) free client API. Icons: [Lucide](https://lucide.dev).
