@@ -11,6 +11,8 @@ import {
   unregisterBackgroundReminder,
   isReminderDue,
   localDateKey,
+  scheduleTriggeredReminders,
+  clearTriggeredReminders,
 } from '../services/notificationService';
 
 const DEFAULT_PREFS = { enabled: false, time: '07:30' };
@@ -53,13 +55,21 @@ export function useReminder({ city, summary, unit }) {
     });
   }, [active, prefs.time, unit, city, summary]);
 
-  // Register / unregister background checks.
+  // Background delivery, best mechanism first:
+  //   1. Notification Triggers (exact time, site closed) where the browser has them
+  //   2. Periodic Background Sync (installed PWA, browser-chosen timing)
+  const cityName = city?.name;
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!active) {
-        await unregisterBackgroundReminder();
+        await Promise.all([unregisterBackgroundReminder(), clearTriggeredReminders()]);
         if (!cancelled) setBackground('off');
+        return;
+      }
+      if (await scheduleTriggeredReminders(prefs.time, cityName)) {
+        await unregisterBackgroundReminder(); // avoid a second, duplicate delivery path
+        if (!cancelled) setBackground('triggers');
         return;
       }
       const result = await registerBackgroundReminder();
@@ -68,11 +78,12 @@ export function useReminder({ city, summary, unit }) {
     return () => {
       cancelled = true;
     };
-  }, [active]);
+  }, [active, prefs.time, cityName]);
 
   // Foreground scheduler: checks every 30 s while the app is open in any tab.
+  // Not needed when the OS already holds triggered notifications.
   useEffect(() => {
-    if (!active) return undefined;
+    if (!active || background === 'triggers') return undefined;
     const check = async () => {
       const state = (await readReminderState()) || {};
       const now = new Date();
@@ -89,7 +100,7 @@ export function useReminder({ city, summary, unit }) {
     check();
     const id = setInterval(check, CHECK_EVERY_MS);
     return () => clearInterval(id);
-  }, [active, prefs.time, summary]);
+  }, [active, prefs.time, summary, background]);
 
   /** Call only from a user gesture, after the in-app explanation. */
   const askPermission = useCallback(async () => {

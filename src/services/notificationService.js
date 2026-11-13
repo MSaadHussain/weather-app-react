@@ -144,6 +144,59 @@ export async function unregisterBackgroundReminder() {
   }
 }
 
+// ---- Notification Triggers (progressive enhancement) --------------------------
+// Experimental Chromium API: showNotification({ showTrigger: new TimestampTrigger(t) })
+// lets the OS deliver a pre-scheduled notification with the site closed. It is
+// not in stable browsers, so it is feature-detected and used only when present.
+
+const TRIGGER_DAYS = 7;
+const triggerTag = (date) => `wb-daily-${localDateKey(date)}`;
+
+export function supportsNotificationTriggers() {
+  return typeof window !== 'undefined' && 'showTrigger' in Notification.prototype && 'TimestampTrigger' in window;
+}
+
+async function cancelTriggeredReminders(reg) {
+  try {
+    const pending = await reg.getNotifications({ includeTriggered: true });
+    pending.filter((n) => n.tag?.startsWith('wb-daily-')).forEach((n) => n.close());
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Pre-schedules the next TRIGGER_DAYS reminders. The body can't contain live
+ * weather (it is written days ahead), so it invites the user to open the app.
+ * Returns true when scheduled.
+ */
+export async function scheduleTriggeredReminders(time, cityName) {
+  if (!supportsNotificationTriggers() || getPermission() !== 'granted') return false;
+  const reg = await getRegistration();
+  if (!reg) return false;
+  await cancelTriggeredReminders(reg);
+  let at = nextReminderDate(time);
+  for (let i = 0; i < TRIGGER_DAYS; i++) {
+    // eslint-disable-next-line no-undef
+    await reg.showNotification('Good morning ☀ Your weather is ready', {
+      body: cityName ? `Tap to see today’s forecast for ${cityName}.` : 'Tap to see today’s forecast.',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
+      tag: triggerTag(at),
+      data: { url: '/' },
+      showTrigger: new window.TimestampTrigger(at.getTime()),
+    });
+    at = new Date(at);
+    at.setDate(at.getDate() + 1);
+  }
+  return true;
+}
+
+export async function clearTriggeredReminders() {
+  const reg = await getRegistration();
+  if (reg) await cancelTriggeredReminders(reg);
+}
+
 // ---- Scheduling logic (mirrored in public/service-worker.js) ------------------
 
 export function localDateKey(date) {

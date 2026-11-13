@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from 'react';
-import { BellRing, BellOff, ShieldCheck, ShieldAlert, ShieldQuestion, CheckCircle2, CircleDashed, XCircle, Send, Info } from 'lucide-react';
+import { BellRing, BellOff, ShieldCheck, ShieldAlert, ShieldQuestion, CheckCircle2, CircleDashed, XCircle, Send, Info, Download } from 'lucide-react';
 import Dialog from '../common/Dialog';
 import { validateReminderTime } from '../../utils/validation';
 import { nextReminderDate } from '../../services/notificationService';
 import { useToast } from '../common/Toaster';
 import { ThemeSegmented } from '../Settings/ThemeControls';
 import { UnitToggle } from '../Header/Header';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 
 /** Grouped settings block, iOS/Android settings style: label, helper, control. */
 function SettingsSection({ title, description, children, last }) {
@@ -32,7 +33,7 @@ function formatNext(date) {
   return `${isToday ? 'Today' : 'Tomorrow'} at ${time}`;
 }
 
-function DeliveryRow({ ok, pending, title, detail }) {
+function DeliveryRow({ ok, pending, title, detail, action }) {
   const Icon = ok ? CheckCircle2 : pending ? CircleDashed : XCircle;
   return (
     <li className="flex gap-3">
@@ -40,6 +41,7 @@ function DeliveryRow({ ok, pending, title, detail }) {
       <div>
         <p className="text-sm font-medium">{title}</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted">{detail}</p>
+        {action}
       </div>
     </li>
   );
@@ -47,10 +49,12 @@ function DeliveryRow({ ok, pending, title, detail }) {
 
 function backgroundCopy(background, support) {
   switch (background) {
+    case 'triggers':
+      return { ok: true, detail: 'Scheduled with your browser for the next 7 days, so each reminder arrives on time even with WeatherBoard closed. Opening the app tops the schedule up.' };
     case 'registered':
       return { ok: true, detail: 'Active. Your browser will wake WeatherBoard in the background to deliver the reminder. The browser decides exactly when, so it may arrive a little late.' };
     case 'not-installed':
-      return { pending: true, detail: 'Install WeatherBoard (address-bar install icon or “Add to Home screen”) to let Chrome/Edge check in the background while the app is closed.' };
+      return { pending: true, detail: 'Install WeatherBoard to let Chrome/Edge wake it in the background while it’s closed (the browser picks the exact moment, so it may be a little late). On a phone, use “Add to Home screen”.' };
     case 'denied':
       return { pending: true, detail: 'Your browser hasn’t granted background sync to this app yet (it requires some regular use). Reminders still arrive while the app is open.' };
     case 'unsupported':
@@ -64,6 +68,7 @@ function backgroundCopy(background, support) {
 
 export default function NotificationSettings({ open, onClose, reminder, cityName }) {
   const toast = useToast();
+  const installer = useInstallPrompt();
   const { prefs, permission, support, background, active } = reminder;
   const [time, setTime] = useState(prefs.time);
   const [timeError, setTimeError] = useState(null);
@@ -253,7 +258,28 @@ export default function NotificationSettings({ open, onClose, reminder, cityName
                   <h3 className="text-xs font-medium uppercase tracking-wide text-muted">How it’s delivered</h3>
                   <ul className="mt-3 space-y-3">
                     <DeliveryRow ok title="While WeatherBoard is open" detail="On time, from any open tab or installed window, even in the background." />
-                    <DeliveryRow ok={bg.ok} pending={bg.pending} title="While WeatherBoard is closed" detail={bg.detail} />
+                    <DeliveryRow
+                      ok={bg.ok}
+                      pending={bg.pending}
+                      title="While WeatherBoard is closed"
+                      detail={bg.detail}
+                      action={
+                        installer.status === 'available' && background !== 'triggers' ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const outcome = await installer.install();
+                              if (outcome === 'accepted') {
+                                toast('WeatherBoard installed. Open it from your apps so it can check for reminders in the background.', { type: 'success' });
+                              }
+                            }}
+                            className="mt-2 inline-flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                          >
+                            <Download size={15} aria-hidden="true" /> Install WeatherBoard
+                          </button>
+                        ) : null
+                      }
+                    />
                   </ul>
                 </div>
                 <button
