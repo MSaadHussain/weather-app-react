@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Search, X, AlertCircle, MapPin, RefreshCw, LocateFixed } from 'lucide-react';
+import { Search, X, AlertCircle, MapPin, RefreshCw, LocateFixed, History } from 'lucide-react';
 import { useCitySearch } from '../../hooks/useCitySearch';
 import { validateCityQuery } from '../../utils/validation';
 import { describeSearchError } from '../../utils/errorMessages';
@@ -8,13 +8,16 @@ import { Spinner } from '../Loading/Skeletons';
 /**
  * WAI-ARIA combobox with live suggestions.
  *
+ * - Empty + focused: shows recent cities (mobile-app search pattern).
+ * - Typing: debounced live suggestions with loading / empty / error rows.
+ *
  * Validation timing (Stripe-style):
  *   - on blur: only if the user has typed something (a pristine field isn't nagged)
  *   - on submit (Enter): always
  *   - once an error is visible, it re-validates on every keystroke so it clears
  *     as soon as the input becomes valid.
  */
-export default function CitySearch({ onSelect, onLocate, locating }) {
+export default function CitySearch({ onSelect, onLocate, locating, recent = [], onClearRecent }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -27,9 +30,11 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
 
   const search = useCitySearch(query);
   const { status, results } = search;
-  const showList = open && status !== 'idle';
+  const showRecent = open && !query.trim() && recent.length > 0;
+  const options = showRecent ? recent : results;
+  const showList = open && (status !== 'idle' || showRecent);
 
-  useEffect(() => setActive(-1), [results]);
+  useEffect(() => setActive(-1), [results, showRecent]);
 
   // Enter pressed while suggestions were still loading: resolve once they arrive.
   useEffect(() => {
@@ -65,12 +70,12 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
   }
 
   function submit() {
+    if (active >= 0 && options[active]) return choose(options[active]);
     const message = validateCityQuery(query);
     if (message) {
       setError(message);
       return;
     }
-    if (active >= 0 && results[active]) return choose(results[active]);
     if (status === 'success') return choose(results[0]);
     if (status === 'empty') return setError(noResultsMessage(query));
     if (status === 'error') {
@@ -86,11 +91,11 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
       case 'ArrowDown':
         e.preventDefault();
         setOpen(true);
-        if (results.length) setActive((i) => (i + 1) % results.length);
+        if (options.length) setActive((i) => (i + 1) % options.length);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        if (results.length) setActive((i) => (i <= 0 ? results.length - 1 : i - 1));
+        if (options.length) setActive((i) => (i <= 0 ? options.length - 1 : i - 1));
         break;
       case 'Enter':
         e.preventDefault();
@@ -123,7 +128,7 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
           Search for a city
         </label>
         <div
-          className={`flex h-12 items-center gap-1 rounded-xl border bg-surface pl-3 transition-shadow sm:h-11 focus-within:ring-4 ${
+          className={`flex h-12 items-center gap-1 rounded-xl border bg-surface pl-3 transition-shadow focus-within:ring-4 sm:h-11 ${
             error ? 'border-danger focus-within:ring-red-500/15' : 'border-line focus-within:border-accent focus-within:ring-[var(--ring)]'
           }`}
         >
@@ -135,10 +140,11 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
           <input
             ref={inputRef}
             id={`${listId}-input`}
-            type="text"
+            type="search"
             role="combobox"
             autoComplete="off"
             autoCorrect="off"
+            autoCapitalize="words"
             spellCheck="false"
             enterKeyHint="search"
             placeholder="Search any city…"
@@ -153,7 +159,7 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
             aria-activedescendant={activeId}
             aria-invalid={!!error}
             aria-describedby={error ? errorId : undefined}
-            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-muted focus-visible:outline-none sm:text-sm"
+            className="h-full min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-muted focus-visible:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
@@ -185,10 +191,12 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
         </div>
       </form>
 
+      {/* Inline error sits directly under the field and is announced (role=alert). */}
       {error && !showList && (
         <p
           id={errorId}
-          className="absolute left-0 right-0 top-full z-30 mt-1.5 flex items-start gap-1.5 rounded-lg bg-surface px-2 py-1.5 text-[13px] leading-snug text-danger shadow-card"
+          role="alert"
+          className="absolute left-0 right-0 top-full z-30 mt-1.5 flex items-start gap-1.5 rounded-lg border border-red-200 bg-surface px-3 py-2 text-[13px] leading-snug text-danger shadow-card dark:border-red-400/20"
         >
           <AlertCircle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
           {error}
@@ -200,21 +208,32 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
           className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-line bg-surface shadow-xl anim-fade-up"
           onMouseDown={(e) => e.preventDefault()} // keep focus in the input while clicking
         >
-          {status === 'loading' && results.length === 0 && (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted">
+          {showRecent && (
+            <div className="flex items-center justify-between px-4 pb-1 pt-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Recent</p>
+              {onClearRecent && (
+                <button type="button" onClick={onClearRecent} className="-my-2 h-9 rounded-md px-2 text-xs font-medium text-accent hover:bg-accent-soft">
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+
+          {!showRecent && status === 'loading' && results.length === 0 && (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted" role="status">
               <Spinner size={14} /> Searching cities…
             </div>
           )}
 
-          {status === 'empty' && (
-            <div className="px-4 py-3 text-sm">
+          {!showRecent && status === 'empty' && (
+            <div className="px-4 py-3 text-sm" role="status">
               <p className="font-medium">No cities match “{query.trim()}”</p>
               <p className="mt-0.5 text-muted">Check the spelling, or try a larger city nearby.</p>
             </div>
           )}
 
-          {status === 'error' && (
-            <div className="flex items-start gap-3 px-4 py-3 text-sm">
+          {!showRecent && status === 'error' && (
+            <div className="flex items-start gap-3 px-4 py-3 text-sm" role="alert">
               <AlertCircle size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden="true" />
               <p className="flex-1 text-fg">{describeSearchError(search.error)}</p>
               <button
@@ -227,36 +246,54 @@ export default function CitySearch({ onSelect, onLocate, locating }) {
             </div>
           )}
 
-          <ul id={listId} role="listbox" aria-label="City suggestions" className="max-h-80 overflow-y-auto py-1">
-            {results.map((city, i) => (
+          <ul id={listId} role="listbox" aria-label={showRecent ? 'Recent cities' : 'City suggestions'} className="max-h-80 overflow-y-auto py-1">
+            {options.map((city, i) => (
               <li
-                key={city.id}
+                key={city.id || `${city.lat},${city.lon}`}
                 id={`${listId}-opt-${i}`}
                 role="option"
                 aria-selected={i === active}
                 onClick={() => choose(city)}
                 onMouseEnter={() => setActive(i)}
-                className={`flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2 text-sm ${i === active ? 'bg-accent-soft' : ''}`}
+                className={`flex min-h-11 items-center gap-3 px-4 py-2 text-sm ${i === active ? 'bg-accent-soft' : ''}`}
               >
-                <MapPin size={15} className="shrink-0 text-muted" aria-hidden="true" />
+                {showRecent ? (
+                  <History size={15} className="shrink-0 text-muted" aria-hidden="true" />
+                ) : (
+                  <MapPin size={15} className="shrink-0 text-muted" aria-hidden="true" />
+                )}
                 <span className="min-w-0 flex-1 truncate">
-                  <span className="font-medium text-fg">{city.name}</span>
-                  <span className="text-muted">{[city.region, city.country].filter(Boolean).length ? `, ${[city.region, city.country].filter(Boolean).join(', ')}` : ''}</span>
+                  <Highlight text={city.name} query={showRecent ? '' : query} />
+                  <span className="text-muted">
+                    {[city.region, city.country].filter(Boolean).length ? `, ${[city.region, city.country].filter(Boolean).join(', ')}` : ''}
+                  </span>
                 </span>
                 {city.countryCode && (
-                  <span aria-hidden="true" className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted ring-1 ring-inset ring-line">
+                  <span aria-hidden="true" className="rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-muted ring-1 ring-inset ring-line">
                     {city.countryCode.toUpperCase()}
                   </span>
                 )}
               </li>
             ))}
           </ul>
-          {status === 'success' && search.source === 'open-meteo' && (
-            <p className="border-t border-line px-4 py-1.5 text-[11px] text-muted">Suggestions from Open-Meteo (GeoDB unavailable)</p>
+          {!showRecent && status === 'success' && search.source === 'open-meteo' && (
+            <p className="border-t border-line px-4 py-1.5 text-xs text-muted">Suggestions from Open-Meteo (GeoDB unavailable)</p>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+/** Bold the part of the name that matches what the user typed. */
+function Highlight({ text, query }) {
+  const q = query.trim();
+  if (!q || !text.toLowerCase().startsWith(q.toLowerCase())) return <span className="font-medium text-fg">{text}</span>;
+  return (
+    <span className="text-fg">
+      <span className="font-semibold">{text.slice(0, q.length)}</span>
+      <span className="font-normal">{text.slice(q.length)}</span>
+    </span>
   );
 }
 
