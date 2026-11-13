@@ -498,4 +498,25 @@ From the pasted endpoint list, it adopted `GET /v1/geo/locations/{locationId}/ne
 
 ---
 
+## Prompt 6: Notifications check
+
+> Notifications check please
+>
+> notification should show even with website close
+
+**What the agent tested on the live site:** permission "not asked" → in-app explainer → browser prompt → Allowed. The test notification was delivered via the service worker. A reminder set for 2 minutes ahead fired on time and recorded `lastFired`, so it won't repeat that day.
+
+On "show even with website closed", the agent explained that exact closed-site delivery needs a push server. It asked whether to add one (Vercel functions + Upstash + VAPID) or stay client-only.
+
+**Decision (user):**
+
+> Keep the application strictly client-side as specified in the Edspire PDF. Do not introduce Upstash, a backend, or VAPID configuration. Implement browser-native notifications and service worker functionality to the maximum extent supported. Reminders should work while the website is open, with best-effort background functionality for installed PWAs.
+
+**Result:**
+- An in-app Install button (captured `beforeinstallprompt`) unlocks Periodic Background Sync.
+- Feature-detected Notification Triggers pre-schedule 7 days of reminders where the experimental API exists.
+- The docs describe each delivery path honestly.
+
+---
+
 <!-- Add follow-up prompts below, in order: debugging, UI refinement, final testing, deployment. -->

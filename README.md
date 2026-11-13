@@ -138,6 +138,13 @@ What WeatherBoard does instead, from most to least reliable:
 2. **App closed, Chrome/Edge, installed PWA:** **Periodic Background Sync** wakes the service worker even when the app is closed. If the reminder is due (within a 3-hour catch-up window), it fetches a fresh one-line forecast from Open-Meteo and shows the notification. The browser decides how often this runs (based on site engagement), so delivery is best-effort and may be late.
 3. **Other browsers (Firefox, Safari):** reminders work while the app is open. The settings sheet says exactly which of these modes is active for the current browser.
 
+Two further browser-native enhancements push this as far as a client-only app can go:
+
+- **In-app Install button.** The app captures Chrome/Edge's `beforeinstallprompt` and offers "Install WeatherBoard" right in the reminder settings, because Periodic Background Sync is granted to installed apps only.
+- **Notification Triggers (experimental, feature-detected).** Where `showTrigger` / `TimestampTrigger` exist (Chromium behind a flag at the time of writing), the service worker pre-schedules the next 7 reminders with the OS. They arrive at the exact time with the site closed, and opening the app tops the schedule up. Both other paths are switched off in that case to avoid duplicates. In browsers without the API this code path is simply skipped.
+
+Verified on the live site (Chrome, Windows): pre-permission explainer → browser prompt → "Allowed"; the test notification was delivered through the service worker with live weather; a reminder set two minutes ahead fired on time from the foreground scheduler and was recorded so it doesn't repeat that day.
+
 The service worker already contains a `push` handler, so adding a small serverless function plus a push subscription later would enable exact delivery without changing the UI.
 
 ## Known limitations
