@@ -22,6 +22,11 @@ export function formatCityTime(unixSeconds, offsetSeconds = 0) {
   });
 }
 
+/** "14:00" / "2 PM" style hour label in the city's local time. */
+export function formatCityHour(unixSeconds, offsetSeconds = 0) {
+  return shiftToCity(unixSeconds, offsetSeconds).toLocaleTimeString([], { hour: 'numeric', timeZone: 'UTC' });
+}
+
 /** dateKey 'YYYY-MM-DD' -> { weekday: 'Mon', long: 'Monday', short: '14 Nov' } */
 export function formatDayKey(dateKey) {
   const d = new Date(`${dateKey}T12:00:00Z`);

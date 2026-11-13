@@ -25,6 +25,7 @@ import { cityDateKey } from '../utils/dateHelpers';
 const OWM_BASE = 'https://api.openweathermap.org/data/2.5';
 const OM_BASE = 'https://api.open-meteo.com/v1/forecast';
 const FORECAST_DAYS = 5;
+const HOURLY_SLOTS = 8; // 8 × 3 h = the next 24 hours
 const MEMORY_TTL = 5 * 60 * 1000; // re-selecting a city within 5 min reuses data
 
 const memoryCache = new Map(); // key -> { data, at }
@@ -123,6 +124,15 @@ export function normaliseOpenWeather(cur, fc, cachedAt = null) {
 
   const today = daily.find((d) => d.dateKey === todayKey);
 
+  // Next 24 h in the free tier's native 3-hour steps.
+  const hourly = (fc.list || []).slice(0, HOURLY_SLOTS).map((s) => ({
+    time: s.dt,
+    temp: s.main.temp ?? (s.main.temp_min + s.main.temp_max) / 2,
+    condition: conditionFromOwm(s.weather[0].id),
+    isDay: s.sys?.pod ? s.sys.pod === 'd' : true,
+    pop: Math.round((s.pop || 0) * 100),
+  }));
+
   return {
     provider: 'openweathermap',
     timezoneOffset: tz,
@@ -143,6 +153,7 @@ export function normaliseOpenWeather(cur, fc, cachedAt = null) {
       sunset: cur.sys?.sunset ?? null,
       observedAt: cur.dt,
     },
+    hourly,
     daily,
     fetchedAt: cachedAt || Date.now(),
     cachedAt,
@@ -167,6 +178,8 @@ async function fetchOpenMeteo(lat, lon) {
       'visibility',
     ].join(','),
     daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max',
+    hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
+    forecast_hours: '24', // starts at the current hour
     timezone: 'auto',
     forecast_days: String(FORECAST_DAYS),
     wind_speed_unit: 'ms',
@@ -195,6 +208,19 @@ export function normaliseOpenMeteo(data, cachedAt = null) {
     };
   });
 
+  // Sample every 3rd hour so both providers show the same 3-hour rhythm.
+  const h = data.hourly || {};
+  const hourly = (h.time || [])
+    .map((t, i) => ({
+      time: toUnix(t),
+      temp: h.temperature_2m[i],
+      condition: conditionFromWmo(h.weather_code[i])[0],
+      isDay: h.is_day?.[i] === 1,
+      pop: h.precipitation_probability?.[i] ?? null,
+    }))
+    .filter((_, i) => i % 3 === 0)
+    .slice(0, HOURLY_SLOTS);
+
   return {
     provider: 'open-meteo',
     timezoneOffset: tz,
@@ -215,6 +241,7 @@ export function normaliseOpenMeteo(data, cachedAt = null) {
       sunset: toUnix(d.sunset?.[0]),
       observedAt: toUnix(c.time),
     },
+    hourly,
     daily,
     fetchedAt: cachedAt || Date.now(),
     cachedAt,
