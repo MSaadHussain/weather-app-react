@@ -15,13 +15,13 @@ export function ReminderCard({ reminder, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-3xl border border-line bg-surface p-5 text-left shadow-card hover:border-accent/50"
+      className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-5 text-left shadow-card hover:border-accent/50"
     >
       <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-muted'}`}>
         <Bell size={18} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold tracking-tight">Morning reminder</span>
+        <span className="block text-[15px] font-semibold tracking-tight">Morning reminder</span>
         <span className="block truncate text-xs text-muted">{status}</span>
       </span>
       <ChevronRight size={16} className="text-muted" aria-hidden="true" />
@@ -53,8 +53,8 @@ export function DataSourcesCard({ data, online }) {
         ? 'Unavailable or rate-limited; using fallback'
         : 'Primary weather provider';
   return (
-    <section aria-labelledby="sources-title" className="rounded-3xl border border-line bg-surface p-5 shadow-card">
-      <h2 id="sources-title" className="text-sm font-semibold tracking-tight">
+    <section aria-labelledby="sources-title" className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+      <h2 id="sources-title" className="text-[15px] font-semibold tracking-tight">
         Data sources
       </h2>
       <ul className="mt-2 divide-y divide-line">

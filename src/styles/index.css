@@ -76,9 +76,45 @@ body {
   overflow-x: hidden;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* Global defaults live in the base layer so Tailwind utilities can override
+   them (unlayered CSS would beat every utility class). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---- Interaction feel ----------------------------------------------------- */
+  /* Tailwind 4's reset gives buttons the default cursor; restore the affordance. */
+  button:not(:disabled),
+  [role="option"],
+  [role="switch"],
+  [role="radio"],
+  [role="menuitemradio"],
+  summary {
+    cursor: pointer;
+  }
+
+  button,
+  a,
+  [role="option"] {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* Press feedback that never moves surrounding layout. */
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+/* Smooth cross-fade when the theme flips (e.g. automatically at sunset). */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 600ms ease, border-color 600ms ease, color 600ms ease, fill 600ms ease !important;
 }
 
 .tabular {

@@ -42,7 +42,7 @@ export default function WeatherDetails({ data }) {
 
   return (
     <section aria-labelledby="details-title">
-      <h2 id="details-title" className="mb-3 text-sm font-semibold tracking-tight">
+      <h2 id="details-title" className="mb-3 text-[15px] font-semibold tracking-tight">
         Today’s details
       </h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

@@ -18,9 +18,9 @@ export default function Forecast({ data }) {
   const todayKey = cityDateKey(Math.floor(Date.now() / 1000), data.timezoneOffset);
 
   return (
-    <section aria-labelledby="forecast-title" className="rounded-3xl border border-line bg-surface p-5 shadow-card sm:p-6">
+    <section aria-labelledby="forecast-title" className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
       <div className="flex items-baseline justify-between">
-        <h2 id="forecast-title" className="text-sm font-semibold tracking-tight">
+        <h2 id="forecast-title" className="text-[15px] font-semibold tracking-tight">
           5-day forecast
         </h2>
         <p className="text-xs text-muted">Daily low – high</p>

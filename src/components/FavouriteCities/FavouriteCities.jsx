@@ -49,9 +49,9 @@ export default function FavouriteCities({ favourites, current, onSelect, onReque
   }
 
   return (
-    <section aria-labelledby="fav-title" className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+    <section aria-labelledby="fav-title" className="rounded-2xl border border-line bg-surface p-5 shadow-card">
       <div className="flex items-baseline justify-between">
-        <h2 id="fav-title" className="text-sm font-semibold tracking-tight">
+        <h2 id="fav-title" className="text-[15px] font-semibold tracking-tight">
           Favourite cities
         </h2>
         <span className="text-xs tabular text-muted" aria-label={`${favourites.length} of ${MAX_FAVOURITES} saved`}>
