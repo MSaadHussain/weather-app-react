@@ -73,6 +73,7 @@ export default function Dialog({ open, onClose, title, description, children, va
             : 'w-full max-w-sm rounded-2xl'
         }`}
       >
+        {sheet && <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" />}
         <div className="flex items-start justify-between gap-4 px-5 pt-5">
           <div className="min-w-0">
             <h2 id={titleId} className="text-base font-semibold tracking-tight">
@@ -93,7 +94,7 @@ export default function Dialog({ open, onClose, title, description, children, va
             <X size={18} />
           </button>
         </div>
-        <div className="px-5 pb-5 pt-4">{children}</div>
+        <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">{children}</div>
       </div>
     </div>,
     document.body,

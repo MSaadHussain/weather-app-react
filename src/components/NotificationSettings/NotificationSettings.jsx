@@ -4,6 +4,19 @@ import Dialog from '../common/Dialog';
 import { validateReminderTime } from '../../utils/validation';
 import { nextReminderDate } from '../../services/notificationService';
 import { useToast } from '../common/Toaster';
+import { ThemeSegmented } from '../Settings/ThemeControls';
+import { UnitToggle } from '../Header/Header';
+
+/** Grouped settings block, iOS/Android settings style: label, helper, control. */
+function SettingsSection({ title, description, children, last }) {
+  return (
+    <section className={`${last ? '' : 'mb-6 border-b border-line pb-6'}`}>
+      <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+      {description && <p className="mt-0.5 text-xs leading-relaxed text-muted">{description}</p>}
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
 
 const PERMISSION_BADGE = {
   granted: { icon: ShieldCheck, text: 'Allowed', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300' },
@@ -124,7 +137,16 @@ export default function NotificationSettings({ open, onClose, reminder, cityName
   const bg = backgroundCopy(background, support);
 
   return (
-    <Dialog open={open} onClose={onClose} variant="sheet" title="Daily weather reminder" description="One notification each morning with the day’s forecast. Nothing else.">
+    <Dialog open={open} onClose={onClose} variant="sheet" title="Settings">
+      <SettingsSection title="Appearance">
+        <ThemeSegmented />
+      </SettingsSection>
+
+      <SettingsSection title="Units" description="Temperature, wind speed and visibility switch together.">
+        <UnitToggle className="w-fit" />
+      </SettingsSection>
+
+      <SettingsSection title="Daily reminder" description="One notification each morning with the day’s forecast. Nothing else." last>
       <div className="space-y-5">
         <div className="flex items-center justify-between rounded-xl border border-line px-3.5 py-3">
           <span className="text-sm text-muted">Browser permission</span>
@@ -165,7 +187,7 @@ export default function NotificationSettings({ open, onClose, reminder, cityName
                 }`}
               />
               {timeError ? (
-                <p id={errId} className="mt-1.5 text-xs text-danger">
+                <p id={errId} role="alert" className="mt-1.5 text-xs text-danger">
                   {timeError}
                 </p>
               ) : (
@@ -253,6 +275,7 @@ export default function NotificationSettings({ open, onClose, reminder, cityName
           </p>
         )}
       </div>
+      </SettingsSection>
     </Dialog>
   );
 }

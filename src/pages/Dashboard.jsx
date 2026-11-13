@@ -1,4 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import HourlyStrip from '../components/Forecast/HourlyStrip';
+import StatusPill from '../components/common/StatusPill';
+import { useRecentCities } from '../hooks/useRecentCities';
 import Header from '../components/Header/Header';
 import OfflineBanner from '../components/OfflineBanner/OfflineBanner';
 import WeatherHero from '../components/WeatherCard/WeatherHero';
@@ -28,7 +31,8 @@ const isCity = (c) => c === null || (c && typeof c.lat === 'number' && typeof c.
 
 export default function Dashboard() {
   const toast = useToast();
-  const { unit } = usePreferences();
+  const { unit, setSun } = usePreferences();
+  const { recent, remember, clear: clearRecent } = useRecentCities();
   const online = useOnlineStatus();
   const now = useNow();
 
@@ -42,9 +46,10 @@ export default function Dashboard() {
   const selectCity = useCallback(
     (next) => {
       setCity(next);
+      remember(next);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [setCity],
+    [setCity, remember],
   );
   const geo = useGeolocation(selectCity);
 
@@ -55,6 +60,14 @@ export default function Dashboard() {
     return `${city.name}: ${formatTemp(c.temp, unit)} and ${c.description.toLowerCase()}. High ${formatTemp(c.high, unit)}, low ${formatTemp(c.low, unit)}.`;
   }, [weather.data, city, unit]);
   const reminder = useReminder({ city, summary, unit });
+
+  // Feed the selected city's sunrise/sunset to the Auto (day/night) theme.
+  const sunrise = weather.data?.current.sunrise;
+  const sunset = weather.data?.current.sunset;
+  const offset = weather.data?.timezoneOffset;
+  useEffect(() => {
+    setSun(sunrise && sunset && city ? { sunrise, sunset, offset, place: city.name } : null);
+  }, [sunrise, sunset, offset, city, setSun]);
 
   function toggleFavourite() {
     if (!city) return;
@@ -90,6 +103,7 @@ export default function Dashboard() {
     main = (
       <>
         <HeroSkeleton />
+        <div className="skeleton h-40 rounded-2xl" aria-hidden="true" />
         <ForecastSkeleton />
         <DetailsSkeleton />
       </>
@@ -114,6 +128,7 @@ export default function Dashboard() {
           isFavourite={isFavourite(city)}
           onToggleFavourite={toggleFavourite}
         />
+        <HourlyStrip data={data} />
         <Forecast data={data} />
         <WeatherDetails data={data} />
       </>
@@ -133,15 +148,21 @@ export default function Dashboard() {
         onSelectCity={selectCity}
         onLocate={geo.locate}
         locating={geo.status === 'locating'}
-        onOpenReminders={() => setRemindersOpen(true)}
+        onOpenSettings={() => setRemindersOpen(true)}
         reminderActive={reminder.active}
+        recent={recent}
+        onClearRecent={clearRecent}
       />
       {!online && <OfflineBanner savedAt={data ? data.cachedAt || data.fetchedAt : null} cityName={data ? city?.name : null} />}
 
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pt-8">
-        <div className="mb-4 flex items-baseline justify-between xl:hidden">
-          <p className="text-sm font-medium text-fg">{formatLongDate(now)}</p>
-          <p className="text-sm tabular text-muted">{formatClock(now)}</p>
+        {/* Context bar: today's date (the header shows it from xl) and data freshness. */}
+        <div className="mb-4 flex min-h-7 items-center justify-between gap-3">
+          <p className="text-sm text-muted">
+            <span className="font-medium text-fg">{formatLongDate(now)}</span>
+            <span className="tabular xl:hidden"> · {formatClock(now)}</span>
+          </p>
+          {city && <StatusPill status={status} data={data} isStale={isStale} online={online} />}
         </div>
 
         <div className="mb-4 lg:hidden">
