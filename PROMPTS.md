@@ -433,4 +433,47 @@ Verification performed by the agent: production build; autocomplete; keyboard se
 
 ---
 
+## Prompt 3: Commit history
+
+> Update git with proper commit messages
+
+**Result:** the work was committed as nine Conventional Commits in dependency order (scaffold → utils → API services → hooks → PWA → reminders → UI → docs).
+
+---
+
+## Prompt 4: UI/UX refinement pass
+
+> then
+> use /ui-ux-pro-max
+>
+> To update
+>
+> Clean layout, excellent empty states, tight typography hierarchy.
+> Status indicators, subtle motion, information density done right.
+> Error-handling UX, inline form validation patterns.
+> Dashboard cards, data hierarchy, calm and confident colour palette.
+> "weather dashboard" Modern visual patterns for weather cards and forecast layouts.
+>  Real mobile-app patterns: search, notifications, settings flows.
+> +
+> Realtime Day / Night setting with theme
+
+**How the agent used the skill:** it generated a design system for "weather dashboard, calm, data-dense, day/night" (data-dense dashboard style, sky + sun-amber palette, subtle motion) and queried the UX guideline database for inline validation, empty states, loading/status feedback, mobile settings and dark-mode contrast. It then applied the parts that fit the existing brand rather than replacing it. Inter and the navy palette from the brief were kept; the suggested Fira fonts were not adopted.
+
+**Changes:**
+- **Realtime day/night "Auto" theme:** light/dark follows the selected city's sunrise/sunset, checked every minute, with a cross-fade on switch. The hero sky and icons also follow the real sun. A header theme menu (Auto/System/Light/Dark) explains when the next switch happens.
+- **Next 24 hours strip:** 3-hour steps with a temperature curve, normalised from both providers.
+- **Status pill:** Live / Updating / Saved / Update failed, next to the date.
+- **Search:** recent cities shown when the field is focused and empty; matched prefix in bold; errors announced with `role="alert"`.
+- **Settings sheet:** Appearance, Units and Daily reminder sections; drag-handle bottom sheet on mobile; safe-area padding.
+- **Visual system:** consistent card radius and section titles, 12 px minimum text, 150 ms transitions, press feedback, pointer cursor on controls.
+
+**Problems found during verification and fixed:**
+
+| # | Problem | Fix |
+|---|---|---|
+| 1 | At 375 px the page was 548 px wide. The hourly strip's `sr-only` labels are `position: absolute`; with no positioned ancestor inside the scroller they escaped its clipping. On mobile the browser widened the layout viewport, which masked the overflow in the first measurement. | Made the scroller `relative`; re-measured clientWidth = scrollWidth = 375. |
+| 2 | Global `:focus-visible` and interaction rules were unlayered, so they beat Tailwind utilities (the search input still drew a second focus outline). | Moved them into `@layer base`. |
+
+---
+
 <!-- Add follow-up prompts below, in order: debugging, UI refinement, final testing, deployment. -->

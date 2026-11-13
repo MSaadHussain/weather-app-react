@@ -21,7 +21,12 @@ Built for the Edspire Frontend (React) technical challenge. The original brief i
 | PWA | Web manifest (name, 192/512 + maskable icons, `theme_color`, `display: standalone`) and a hand-written service worker that precaches the app shell and caches the last viewed city's weather. An offline banner appears, and saved data is clearly labelled as possibly out of date. |
 | Daily reminder | User-chosen time, an in-app explanation **before** the browser permission prompt, granted / denied / unsupported states, and a test notification. See [Reminders: what really happens](#reminders-what-really-happens). |
 | Responsive | Verified at 375 / 768 / 1280 px with no horizontal scroll; all interactive targets are ≥ 44 × 44 px on mobile. |
-| Bonus | Light / dark / system theme, °C / °F toggle (persisted, instant, no refetch), animated condition icons (CSS, reduced-motion aware), skeleton loading, designed empty states. |
+| Bonus | **Realtime day/night theme** (see below), light / dark / system themes, °C / °F toggle (persisted, instant, no refetch), animated condition icons (CSS, reduced-motion aware), skeleton loading, designed empty states. |
+| Extras | Next-24-hours strip with temperature curve, recent searches in the search field, a data-freshness status pill (Live / Updating / Saved / Update failed), and a mobile-style settings sheet (Appearance, Units, Daily reminder). |
+
+### Realtime day/night theme
+
+The default theme, **Auto**, follows the sun at the city you're viewing. It's light between that city's sunrise and sunset and dark otherwise, re-evaluated every minute, so the interface cross-fades to dark at sunset while you watch. Switching to a city where it's night (Tokyo, viewed from Karachi in the afternoon) flips it immediately. The hero card's sky and icons also follow the real sunrise/sunset rather than the moment the data was fetched. Before any city loads, Auto falls back to the OS preference, and the last resolved theme is painted before React mounts to avoid a flash. **System**, **Light** and **Dark** are available from the header menu and the settings sheet.
 
 ## Tech stack
 
@@ -92,7 +97,8 @@ scripts/generate-icons.mjs   dependency-free PNG icon generator
 5. **No duplicate requests.** Identical concurrent weather requests share one promise; results are memoised for 5 minutes; autocomplete aborts stale requests and caches queries; a request-id guard drops out-of-order responses.
 6. **Validation timing (Stripe-style).** A pristine field isn't nagged on blur; once the user has typed, blur validates; once an error shows, it re-validates on each keystroke so it clears as soon as the input is fixed.
 7. **Hand-written service worker** instead of a plugin, so every caching strategy is explicit and explainable. A 30-line Vite plugin (`vite.config.js`) injects the hashed build file list for precaching.
-8. **Accessibility.** WAI-ARIA combobox, focus-trapped dialogs that restore focus, `aria-live` toasts and status, a skip link, visible focus rings, reduced-motion support, and screen-reader text for the forecast bars.
+8. **Design system pass.** Guided by the ui-ux-pro-max design-intelligence skill: one secondary-card radius, a single section-title size, a minimum 12 px text size, 150 ms colour/press transitions, `cursor: pointer` restored on controls, global styles placed in `@layer base` so utilities can override them, and safe-area padding on the sticky header and bottom sheet.
+9. **Accessibility.** WAI-ARIA combobox, focus-trapped dialogs that restore focus, `aria-live` toasts and status, a skip link, visible focus rings, reduced-motion support, and screen-reader text for the forecast bars.
 
 ## PWA implementation
 
