@@ -16,9 +16,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script>
       // Apply the saved/system theme before React mounts to avoid a light flash.
+      // In "auto" mode, reuse the last resolved day/night theme until weather data confirms it.
       try {
-        var t = JSON.parse(localStorage.getItem('wb:theme') || '"system"');
-        var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var t = JSON.parse(localStorage.getItem('wb:theme') || '"auto"');
+        var last = JSON.parse(localStorage.getItem('wb:resolved-theme') || 'null');
+        var sys = matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = t === 'dark' || (t === 'system' && sys) || (t === 'auto' && (last ? last === 'dark' : sys));
         if (dark) document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>

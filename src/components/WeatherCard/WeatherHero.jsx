@@ -5,6 +5,7 @@ import { formatTemp, formatWind, formatVisibility } from '../../utils/weatherHel
 import { formatCityTime, timeAgo } from '../../utils/dateHelpers';
 import { useNow } from '../../hooks/useNow';
 import { Spinner } from '../Loading/Skeletons';
+import { solarPhase } from '../../context/PreferencesContext';
 
 // The card's sky reflects the actual conditions and time of day at the city.
 function skyFor(condition, isDay) {
@@ -41,6 +42,10 @@ export default function WeatherHero({ city, data, isStale, refreshing, onRefresh
   const place = [city.region, city.country].filter(Boolean).join(', ');
   const nowSec = Math.floor(now.getTime() / 1000);
   const savedAt = data.cachedAt || data.fetchedAt;
+  // Realtime day/night: the sky and icon flip at the city's actual sunrise/sunset,
+  // not just at fetch time.
+  const phase = solarPhase({ sunrise: c.sunrise, sunset: c.sunset }, nowSec);
+  const isDay = phase ? phase.isDay : c.isDay;
 
   const stats = [
     { icon: Droplets, label: 'Humidity', value: c.humidity != null ? `${c.humidity}%` : '–' },
@@ -52,7 +57,7 @@ export default function WeatherHero({ city, data, isStale, refreshing, onRefresh
   return (
     <section
       aria-labelledby="hero-city"
-      className={`relative overflow-clip rounded-3xl bg-gradient-to-br ${skyFor(c.condition, c.isDay)} p-5 text-white shadow-lg sm:p-8 anim-fade-up`}
+      className={`relative overflow-clip rounded-3xl bg-gradient-to-br ${skyFor(c.condition, isDay)} transition-[background-image] duration-700 p-5 text-white shadow-lg sm:p-8 anim-fade-up`}
     >
       {/* soft light bloom for depth */}
       <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-white/10 blur-3xl" />
@@ -88,7 +93,7 @@ export default function WeatherHero({ city, data, isStale, refreshing, onRefresh
       </div>
 
       <div className="relative mt-6 flex flex-wrap items-center gap-x-6 gap-y-4 sm:mt-8">
-        <WeatherIcon condition={c.condition} isDay={c.isDay} size={84} onDark className="drop-shadow-lg" />
+        <WeatherIcon condition={c.condition} isDay={isDay} size={84} onDark className="drop-shadow-lg" />
         <div>
           <p className="text-7xl font-semibold leading-none tracking-tighter tabular sm:text-8xl">
             {formatTemp(c.temp, unit)}
@@ -119,19 +124,18 @@ export default function WeatherHero({ city, data, isStale, refreshing, onRefresh
       </dl>
 
       <p className="relative mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/75">
-        <span
-          className={`inline-block size-2 rounded-full ${isStale ? 'bg-amber-300' : 'bg-emerald-300 text-emerald-300 anim-pulse-dot'}`}
-          aria-hidden="true"
-        />
-        {isStale ? (
-          <span>
-            <strong className="font-semibold text-amber-200">Saved data</strong> from {timeAgo(savedAt, now.getTime())}, which may be out of date
-          </span>
-        ) : (
-          <span>Live · updated {timeAgo(savedAt, now.getTime())}</span>
+        {isStale && (
+          <>
+            <span className="inline-block size-2 rounded-full bg-amber-300" aria-hidden="true" />
+            <span>
+              <strong className="font-semibold text-amber-200">Saved data</strong> from {timeAgo(savedAt, now.getTime())}, which may be out of date
+            </span>
+            <span aria-hidden="true">·</span>
+          </>
         )}
+        {c.observedAt && <span>Observed {formatCityTime(c.observedAt, data.timezoneOffset)} local</span>}
         <span aria-hidden="true">·</span>
-        <span>via {PROVIDER_NAME[data.provider]}</span>
+        <span>Source: {PROVIDER_NAME[data.provider]}</span>
       </p>
     </section>
   );
